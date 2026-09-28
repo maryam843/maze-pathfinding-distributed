@@ -1,0 +1,10 @@
+# Runtime dependencies (direct imports only), pinned to the versions tested in 2026.
+# System tools are separate: an MPI runtime for mpiexec (Open MPI / MPICH, or MS-MPI on Windows)
+# and a RabbitMQ broker for Celery (or use docker compose).
+celery==5.6.3
+matplotlib==3.11.2
+mpi4py==4.1.2
+pillow==12.3.0
+pygame==2.6.1
+# This package itself (src/maze_runner), installed in editable mode.
+-e .
