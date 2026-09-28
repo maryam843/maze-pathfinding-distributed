@@ -1,0 +1,29 @@
+# Python caches and builds
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Environments and secrets
+.venv/
+venv/
+env/
+.env
+
+# Data, model files and scratch output (committed results live directly in results/)
+data/
+*.pth
+results/scratch/
+results/*.tmp
+*.bundle
+
+# Notebooks
+.ipynb_checkpoints/
