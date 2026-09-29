@@ -16,7 +16,7 @@ from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from types import SimpleNamespace
 
-from .explorer import Explorer, ExplorerCycleError
+from .explorer import Explorer, ExplorerStuckError
 from .maze import create_maze
 
 Cell = tuple[int, int]  # (row, col)
@@ -256,7 +256,7 @@ def _wall_follower(problem: MazeProblem, explorer_cls: type[Explorer], name: str
     explorer = explorer_cls(maze, visualize=False)
     try:
         _, moves = explorer.solve()
-    except ExplorerCycleError:
+    except ExplorerStuckError:
         visited = {problem.start} | {to_row_col(m) for m in explorer.moves}
         return SearchResult(name, None, len(visited), explorer.backtrack_count)
     path = [problem.start] + [to_row_col(m) for m in moves]

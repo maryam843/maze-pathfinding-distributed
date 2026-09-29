@@ -1,8 +1,8 @@
 # Provided by DSAI3202 course staff (UDST, Spring 2025).
 # Modified by me: yes (2025: time.time -> time.perf_counter, zero-division guard and 6-decimal
 # output in print_statistics. 2026: pygame imported only when visualize=True, statistics printed
-# only when verbose=True, a max_moves guard that stops a wall follower caught in a cycle,
-# reformatted with ruff.)
+# only when verbose=True, a max_moves guard that stops a wall follower caught in a cycle, no
+# turn-around step into a wall (boxed-in start), reformatted with ruff.)
 """
 Maze Explorer module that implements automated maze solving.
 """
@@ -13,7 +13,11 @@ from collections import deque
 from .constants import BLUE, WHITE, CELL_SIZE, WINDOW_SIZE
 
 
-class ExplorerCycleError(RuntimeError):
+class ExplorerStuckError(RuntimeError):
+    """Raised when the explorer cannot reach the exit (2026)."""
+
+
+class ExplorerCycleError(ExplorerStuckError):
     """Raised when the explorer has made more moves than it has distinct states."""
 
 
@@ -237,6 +241,10 @@ class Explorer:
                         else:
                             # If we can't move left, turn around
                             self.turn_left()
+                            # 2026: only a start cell with no open neighbour gets here with a
+                            # wall behind; stepping anyway walked through walls.
+                            if not self.can_move_forward():
+                                raise ExplorerStuckError("boxed in: no open cell next to the start")
                             self.move_forward()
                             visited.add((self.x, self.y))
 
