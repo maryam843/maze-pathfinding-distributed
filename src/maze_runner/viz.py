@@ -69,14 +69,16 @@ def plot_static_moves(rows: Sequence[dict], out: Path | str) -> Path:
 
 
 def plot_nodes_vs_size(summary: Sequence[dict], out: Path | str) -> Path:
-    """Mean nodes expanded (with +/- 1 sd bars) against maze size, one line per strategy."""
+    """Mean nodes expanded (+/- 1 sd) against maze size for BFS and A*.
+
+    The wall followers are left out: they keep no queue, so their "nodes" (distinct cells
+    stood on) measure something different.
+    """
     fig, ax = plt.subplots(figsize=(6.4, 3.8))
-    strategies = list(dict.fromkeys(r["strategy"] for r in summary))
-    for s in strategies:
+    for s, shift in (("bfs", -0.8), ("astar", 0.8)):
         sel = sorted((r for r in summary if r["strategy"] == s), key=lambda r: r["size"])
-        xs = [r["size"] for r in sel]
         ax.errorbar(
-            xs,
+            [r["size"] + shift for r in sel],
             [r["nodes_mean"] for r in sel],
             yerr=[r["nodes_sd"] for r in sel],
             color=COLOURS[s],
@@ -86,9 +88,9 @@ def plot_nodes_vs_size(summary: Sequence[dict], out: Path | str) -> Path:
             capsize=3,
             label=LABELS[s],
         )
-    ax.set_xlabel("maze size (cells per side)", color=INK)
-    ax.set_ylabel("nodes expanded (mean of 10 seeds)", color=INK)
-    ax.set_title("Random mazes: search effort grows with size", color=INK, loc="left")
+    ax.set_xlabel("maze size (cells per side, 10 seeded mazes each)", color=INK)
+    ax.set_ylabel("nodes expanded (mean, +/- 1 sd)", color=INK)
+    ax.set_title("Random mazes: nodes expanded by BFS and A*", color=INK, loc="left")
     ax.set_xticks(sorted({r["size"] for r in summary}))
     ax.legend(frameon=False)
     _style(ax)
@@ -96,29 +98,41 @@ def plot_nodes_vs_size(summary: Sequence[dict], out: Path | str) -> Path:
 
 
 def plot_backends(rows: Sequence[dict], out: Path | str) -> Path:
-    """Horizontal bars: mean wall time per backend (+/- 1 sd), one panel per maze."""
+    """Mean wall time per backend (+/- 1 sd), one bar per maze, log scale."""
     mazes = list(dict.fromkeys(r["maze"] for r in rows))
-    fig, axes = plt.subplots(1, len(mazes), figsize=(6.8, 0.9 + 0.55 * 5), squeeze=False)
-    for ax, maze in zip(axes[0], mazes, strict=True):
-        sel = [r for r in rows if r["maze"] == maze]
-        labels = [r["label"] for r in sel]
-        means = [r["wall_mean_s"] * 1000 for r in sel]
-        sds = [r["wall_sd_s"] * 1000 for r in sel]
-        ys = range(len(sel))
-        ax.barh(ys, means, xerr=sds, color="#2a78d6", height=0.6, capsize=3)
-        ax.set_yticks(list(ys), labels)
-        ax.invert_yaxis()
-        ax.set_xscale("log")
-        ax.set_xlabel("wall time, ms (log scale)", color=INK)
-        ax.set_title(maze, color=INK, loc="left")
-        for y, m in zip(ys, means, strict=True):
-            ax.annotate(f"{m:.1f}", (m, y), xytext=(4, -9), textcoords="offset points", color=INK)
-        ax.spines[["top", "right"]].set_visible(False)
-        ax.tick_params(colors=MUTED)
-        ax.grid(axis="x", color=GRID, linewidth=0.8)
-        ax.set_axisbelow(True)
-    fig.suptitle("Running the 4 strategies: sequential vs parallel", x=0.01, ha="left", color=INK)
-    fig.tight_layout()
+    backends = list(dict.fromkeys(r["label"] for r in rows))
+    colours = ["#2a78d6", "#eb6834"]
+    height = 0.8 / len(mazes)
+    fig, ax = plt.subplots(figsize=(7.2, 1.2 + 0.8 * len(backends)))
+    for i, maze in enumerate(mazes):
+        sel = {r["label"]: r for r in rows if r["maze"] == maze}
+        ys = [b + (i - (len(mazes) - 1) / 2) * height for b in range(len(backends))]
+        present = [(y, sel[lab]) for y, lab in zip(ys, backends, strict=True) if lab in sel]
+        means = [r["wall_mean_s"] * 1000 for _, r in present]
+        ax.barh(
+            [y for y, _ in present],
+            means,
+            xerr=[r["wall_sd_s"] * 1000 for _, r in present],
+            height=height * 0.9,
+            color=colours[i % 2],
+            capsize=3,
+            label=maze,
+        )
+        for (y, r), m in zip(present, means, strict=True):
+            end = m + r["wall_sd_s"] * 1000  # label after the error bar, not on top of it
+            ax.annotate(f"{m:.1f} ms", (end, y), xytext=(6, -4), textcoords="offset points",
+                        color=INK, fontsize=8)  # fmt: skip
+    ax.set_yticks(range(len(backends)), backends)
+    ax.invert_yaxis()
+    ax.set_xscale("log")
+    ax.set_xlabel("wall time for all 4 strategies, ms (log scale, mean of repeats)", color=INK)
+    ax.set_title("Sequential vs parallel backends", color=INK, loc="left")
+    ax.legend(frameon=False, loc="lower right")
+    ax.spines[["top", "right"]].set_visible(False)
+    ax.tick_params(colors=MUTED)
+    ax.grid(axis="x", color=GRID, linewidth=0.8)
+    ax.set_axisbelow(True)
+    ax.set_xlim(right=ax.get_xlim()[1] * 3)
     return _save(fig, out)
 
 
