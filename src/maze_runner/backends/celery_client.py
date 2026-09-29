@@ -90,24 +90,28 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--size", type=int, default=30)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--timeout", type=float, default=30.0)
-    parser.add_argument("--out", type=Path, help="write the result to this JSON file")
+    parser.add_argument("--repeats", type=int, default=1, help="rounds to run and time")
+    parser.add_argument("--out", type=Path, help="write the rounds to this JSON file")
     args = parser.parse_args(argv)
     problem = load_problem(args.maze, args.size, args.seed)
     try:
-        out = run_celery(problem, timeout=args.timeout)
+        runs = [
+            run_celery(problem, timeout=args.timeout, ping=(i == 0)) for i in range(args.repeats)
+        ]
     except (NoWorkerError, ResultTimeoutError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
-    workers = out["workers"]
+    workers = runs[0]["workers"]
     print(
         f"Celery: {workers['nodes']} worker node(s), {workers['processes']} worker processes, "
         f"maze {problem.name}"
     )
-    print(format_results(out["results"]))
-    print(f"wall time (submit to last result): {out['wall_total_s']:.4f} s")
+    print(format_results(runs[0]["results"]))
+    walls = ", ".join(f"{r['wall_total_s']:.4f}" for r in runs)
+    print(f"wall time (submit to last result), s: {walls}")
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)
-        args.out.write_text(json.dumps(out, indent=2) + "\n", encoding="utf-8")
+        args.out.write_text(json.dumps({"runs": runs}, indent=2) + "\n", encoding="utf-8")
     return 0
 
 
