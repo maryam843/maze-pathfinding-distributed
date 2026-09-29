@@ -179,3 +179,13 @@ def test_celery_main_success(eager, monkeypatch, tmp_path, capsys):
     assert celery_client.main(["--repeats", "2", "--out", str(out)]) == 0
     assert len(json.loads(out.read_text())["runs"]) == 2
     assert "4 worker processes" in capsys.readouterr().out
+
+
+def test_pick_start_method(monkeypatch):
+    from maze_runner.backends.multiproc import pick_start_method
+
+    monkeypatch.delenv("MAZE_MP_START_METHOD", raising=False)
+    assert pick_start_method("spawn") == "spawn"
+    assert pick_start_method() in ("forkserver", "spawn")
+    monkeypatch.setenv("MAZE_MP_START_METHOD", "spawn")
+    assert pick_start_method() == "spawn"

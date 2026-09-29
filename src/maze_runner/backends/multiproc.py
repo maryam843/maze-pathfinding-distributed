@@ -2,7 +2,8 @@
 
 Spawn-safe: the worker function is a top-level function, the job is a small picklable
 dataclass, and nothing runs at import time. So it works with "spawn" (the only start method
-on Windows) as well as "fork". Set MAZE_MP_START_METHOD=spawn to force spawn anywhere.
+on Windows) as well as "forkserver" (used by default on Linux/macOS) and "fork".
+Set MAZE_MP_START_METHOD=spawn to force spawn anywhere.
 """
 
 from __future__ import annotations
@@ -22,6 +23,19 @@ def _worker(job: tuple[MazeProblem, str]) -> dict:
     return solve_job(problem, strategy)
 
 
+def pick_start_method(requested: str | None = None) -> str:
+    """Explicit argument, else MAZE_MP_START_METHOD, else forkserver where it exists, else spawn.
+
+    Plain fork is avoided: it copies open sockets into the children, and Celery's after-fork
+    hook then closes the parent's broker connection from inside the child (see DECISIONS.md).
+    forkserver forks from a clean server process and is Python 3.14's default on Linux.
+    """
+    method = requested or os.environ.get("MAZE_MP_START_METHOD")
+    if method:
+        return method
+    return "forkserver" if "forkserver" in mp.get_all_start_methods() else "spawn"
+
+
 def run_multiprocessing(
     problem: MazeProblem,
     strategies: Iterable[str] = STRATEGY_NAMES,
@@ -35,8 +49,7 @@ def run_multiprocessing(
     """
     strategies = list(strategies)
     jobs = plan_jobs(problem, strategies)
-    method = start_method or os.environ.get("MAZE_MP_START_METHOD") or None
-    ctx = mp.get_context(method)
+    ctx = mp.get_context(pick_start_method(start_method))
     t0 = time.perf_counter()
     with ctx.Pool(processes=processes or len(jobs)) as pool:
         t1 = time.perf_counter()
