@@ -164,6 +164,7 @@ def run_backends(args, info: dict) -> tuple[list[dict], list[dict], list[dict]]:
                 "wall_sd_s": total_sd,
                 "compute_mean_s": None,
                 "compute_sd_s": None,
+                "wall_runs_ms": " ".join(f"{r['wall_total_s'] * 1000:.1f}" for r in runs),
                 "solve_sum_mean_s": mean_sd(
                     sum(x["solve_seconds"] for x in r["results"]) for r in runs
                 )[0],
