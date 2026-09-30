@@ -1,0 +1,103 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-dev.txt
+      - run: ruff check .
+      - run: ruff format --check .
+
+  test-linux:
+    runs-on: ubuntu-latest
+    services:
+      rabbitmq:
+        image: rabbitmq:3.13-alpine
+        env:
+          # throwaway login for this CI container only (guest is refused from outside it)
+          RABBITMQ_DEFAULT_USER: maze
+          RABBITMQ_DEFAULT_PASS: maze
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 5s --health-timeout 10s --health-retries 20
+    env:
+      CELERY_BROKER_URL: pyamqp://maze:maze@localhost:5672//
+      MPIEXEC_FLAGS: --oversubscribe
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Open MPI
+        run: sudo apt-get update && sudo apt-get install -y openmpi-bin libopenmpi-dev
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - name: Unit, property, regression, integration and README smoke tests (T1-T5) with coverage (T10)
+        run: python -m pytest --cov=maze_runner --cov-report=term --cov-fail-under=85
+      - name: Whole suite again with multiprocessing forced to spawn (T7)
+        run: python -m pytest -q
+        env:
+          MAZE_MP_START_METHOD: spawn
+      - name: Regression tests must FAIL on the 2025 files (T2)
+        run: |
+          set +e
+          MAZE_REGRESSION_TARGET=legacy python -m pytest tests/regression -q -p no:cacheprovider > legacy.txt 2>&1
+          code=$?
+          tail -3 legacy.txt
+          grep -q "12 failed" legacy.txt || { echo "expected all 12 regression tests to fail on the 2025 code"; exit 1; }
+          test $code -ne 0
+      - name: README numbers match results/ (T11)
+        run: python scripts/check_readme_claims.py
+
+  test-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - name: Tests (spawn is the only start method on Windows; MPI and Celery integration skip)
+        run: python -m pytest -rs
+
+  pii-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Secrets and personal data in tracked files and every commit (T12)
+        run: python scripts/pii_scan.py
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build images
+        run: docker compose -f docker/docker-compose.yml build
+      - name: RabbitMQ + worker + client until the client exits
+        run: |
+          mkdir -p results/docker && chmod 777 results/docker
+          HOST_UID=$(id -u) docker compose -f docker/docker-compose.yml up \
+            --abort-on-container-exit --exit-code-from client
+      - name: Client wrote its results
+        run: |
+          test -s results/docker/celery_docker_static.json
+          test -s results/docker/celery_docker_random300.json
+      - if: always()
+        run: docker compose -f docker/docker-compose.yml down -v
