@@ -38,7 +38,10 @@ def expected(kind):
 def test_multiprocessing_matches_sequential(kind, _, method):
     run = run_multiprocessing(problem_for(kind), start_method=method)
     assert moves_by_strategy(run["results"]) == expected(kind)
-    assert len({r["pid"] for r in run["results"]}) >= 2  # really ran in several processes
+    # The work ran in pool processes, not in this one. (How the 4 jobs spread over the 4
+    # processes is up to Pool: with spawn, one fast-starting child can take all of them.)
+    assert all(r["pid"] != os.getpid() for r in run["results"])
+    assert run["workers"] == 4
     assert run["wall_total_s"] >= run["wall_compute_s"] > 0
 
 
