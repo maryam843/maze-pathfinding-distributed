@@ -32,7 +32,8 @@ PATTERNS = {
     "password-assignment": re.compile(
         r"(?i)\b(password|passwd|secret|api_key|token)\s*[:=]\s*['\"][^'\"\s]{6,}['\"]"
     ),
-    "url-credentials": re.compile(r"[a-z]+://[^/\s:@]+:[^/\s@]+@(?!localhost)"),
+    # RabbitMQ's documented default guest:guest login is allowed; anything else is flagged.
+    "url-credentials": re.compile(r"[a-z]+://(?!guest:guest@)[^/\s:@]+:[^/\s@]+@(?!localhost)"),
     "email": re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"),
     "ipv4": re.compile(r"(?<![\d.])(?:\d{1,3}\.){3}\d{1,3}(?![\d.])"),
     "user-path": re.compile(
