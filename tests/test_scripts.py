@@ -34,6 +34,7 @@ bench = load_script("run_benchmarks")
         ("C:\\Users\\" + "someone\\Desktop", "user-path"),
         ("/home/" + "someone/project", "user-path"),
         ("student 60" + "1234567", "id-like-number"),
+        ("id_60" + "1234567 here", "id-like-number"),
         ("password = '" + "hunter22'", "password-assignment"),
         ("amqp://user:pw" + "@" + "rabbit.example/", "url-credentials"),
     ],
@@ -52,6 +53,7 @@ def test_pii_patterns_catch_planted_examples(text, kind):
         "time 0.001234567 s",
         "11111111111011111111111111111111111111111111111111111111111111",
         "version 3.12.3",
+        "path hash 1c7c4bb464616284",
     ],
 )
 def test_pii_allowed_text_is_quiet(text):

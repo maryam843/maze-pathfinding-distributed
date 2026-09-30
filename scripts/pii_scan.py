@@ -39,7 +39,8 @@ PATTERNS = {
     "user-path": re.compile(
         r"(?i)([A-Z]:\\Users\\[^\\\s]+|/home/(?!runner\b)[a-z0-9_-]+|/Users/[A-Za-z0-9_-]+)"
     ),
-    "id-like-number": re.compile(r"(?<![\d.])\d{8,9}(?![\d.])"),
+    # digit runs inside hex hashes (letters on either side) are not IDs; "id_[example ID]" still is
+    "id-like-number": re.compile(r"(?<![0-9A-Za-z.])\d{8,9}(?![0-9A-Za-z.])"),
 }
 
 
