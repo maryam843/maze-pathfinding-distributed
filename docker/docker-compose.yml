@@ -1,0 +1,48 @@
+# docker compose -f docker/docker-compose.yml up --build --abort-on-container-exit --exit-code-from client
+# RabbitMQ + one Celery worker (4 processes) + a client that runs the Celery benchmark once and
+# writes results/docker/celery_docker_*.json, then exits (which stops the other services).
+name: maze-runner
+
+services:
+  rabbitmq:
+    image: rabbitmq:3.13-alpine
+    volumes:
+      - ./rabbitmq.conf:/etc/rabbitmq/conf.d/90-maze.conf:ro
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 10s
+      retries: 20
+
+  worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    environment:
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL:-pyamqp://guest:guest@rabbitmq//}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  client:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    environment:
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL:-pyamqp://guest:guest@rabbitmq//}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      worker:
+        condition: service_started
+    user: "${HOST_UID:-1000}"
+    volumes:
+      - ../results/docker:/out
+    command:
+      - sh
+      - -c
+      - >-
+        python -m maze_runner.backends.celery_client --maze static --repeats 5 --wait 90
+        --out /out/celery_docker_static.json &&
+        python -m maze_runner.backends.celery_client --maze random --size 300 --seed 0
+        --repeats 5 --wait 30 --out /out/celery_docker_random300.json
