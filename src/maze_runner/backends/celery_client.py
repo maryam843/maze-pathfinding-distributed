@@ -32,6 +32,18 @@ class NoWorkerError(RuntimeError):
     """The broker is unreachable or no worker answered a ping."""
 
 
+def wait_for_workers(seconds: float, poll: float = 1.0) -> dict:
+    """Keep pinging until a worker answers or `seconds` have passed (used by docker compose)."""
+    deadline = time.monotonic() + seconds
+    while True:
+        try:
+            return count_workers(timeout=poll)
+        except NoWorkerError:
+            if time.monotonic() >= deadline:
+                raise
+            time.sleep(poll)
+
+
 class ResultTimeoutError(RuntimeError):
     """Workers were up but did not return every result in time."""
 
@@ -92,9 +104,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--timeout", type=float, default=30.0)
     parser.add_argument("--repeats", type=int, default=1, help="rounds to run and time")
     parser.add_argument("--out", type=Path, help="write the rounds to this JSON file")
+    parser.add_argument(
+        "--wait", type=float, default=0, help="seconds to wait for a worker before giving up"
+    )
     args = parser.parse_args(argv)
     problem = load_problem(args.maze, args.size, args.seed)
     try:
+        if args.wait:
+            wait_for_workers(args.wait)
         runs = [
             run_celery(problem, timeout=args.timeout, ping=(i == 0)) for i in range(args.repeats)
         ]

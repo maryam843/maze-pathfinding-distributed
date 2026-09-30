@@ -189,3 +189,22 @@ def test_pick_start_method(monkeypatch):
     assert pick_start_method() in ("forkserver", "spawn")
     monkeypatch.setenv("MAZE_MP_START_METHOD", "spawn")
     assert pick_start_method() == "spawn"
+
+
+def test_wait_for_workers_retries_then_gives_up(monkeypatch):
+    calls = []
+
+    def ping(timeout):
+        calls.append(1)
+        return [{"w": {"ok": "pong"}}] if len(calls) >= 3 else []
+
+    class Inspect:
+        def stats(self):
+            return {}
+
+    monkeypatch.setattr(app.control, "ping", ping)
+    monkeypatch.setattr(app.control, "inspect", lambda timeout: Inspect())
+    assert celery_client.wait_for_workers(5, poll=0.01)["nodes"] == 1
+    monkeypatch.setattr(app.control, "ping", lambda timeout: [])
+    with pytest.raises(celery_client.NoWorkerError):
+        celery_client.wait_for_workers(0.05, poll=0.01)
