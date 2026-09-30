@@ -27,3 +27,7 @@ results/*.tmp
 
 # Notebooks
 .ipynb_checkpoints/
+
+# Command-line output folder used in the README
+out/
+results/docker/
