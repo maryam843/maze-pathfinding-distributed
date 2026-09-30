@@ -35,6 +35,7 @@ bench = load_script("run_benchmarks")
         ("/home/" + "someone/project", "user-path"),
         ("student 60" + "1234567", "id-like-number"),
         ("id_60" + "1234567 here", "id-like-number"),
+        ("other hash aaaaaaaa1234" + "5678", "id-like-number"),
         ("password = '" + "hunter22'", "password-assignment"),
         ("amqp://user:pw" + "@" + "rabbit.example/", "url-credentials"),
     ],

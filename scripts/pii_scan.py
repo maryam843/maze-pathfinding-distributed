@@ -21,6 +21,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 ALLOWED_EMAILS = {"185722545+maryam843@users.noreply.github.com"}
 ALLOWED_IPS = {"127.0.0.1", "0.0.0.0"}
+# Reviewed 2026-09-30: 16-hex SHA-256 prefixes (path_sha / maze_fingerprint columns) in
+# results/random_mazes.csv whose digit tails match the ID pattern. Exact values only.
+ALLOWED_HASHES = {
+    "17f176737038e3e1",  # results/random_mazes.csv:48-49 path_sha
+    "1c7c4bb464616284",  # results/random_mazes.csv:76-77 path_sha
+    "928115846fe91b51",  # results/random_mazes.csv:124-125 path_sha
+    "927f771c32255021",  # results/random_mazes.csv:130-133 maze_fingerprint
+}
 
 PATTERNS = {
     "aws-key": re.compile(r"\b(AKIA|ASIA)[0-9A-Z]{16}\b"),
@@ -39,8 +47,7 @@ PATTERNS = {
     "user-path": re.compile(
         r"(?i)([A-Z]:\\Users\\[^\\\s]+|/home/(?!runner\b)[a-z0-9_-]+|/Users/[A-Za-z0-9_-]+)"
     ),
-    # digit runs inside hex hashes (letters on either side) are not IDs; "id_[example ID]" still is
-    "id-like-number": re.compile(r"(?<![0-9A-Za-z.])\d{8,9}(?![0-9A-Za-z.])"),
+    "id-like-number": re.compile(r"(?<![\d.])\d{8,9}(?![\d.])"),
 }
 
 
@@ -49,6 +56,8 @@ def findings_in_text(text: str, where: str, deny: list[str]) -> list[str]:
     for lineno, line in enumerate(text.splitlines(), 1):
         for allowed in ALLOWED_EMAILS:  # its digits are a GitHub user id, not personal data
             line = line.replace(allowed, "<allowed-noreply>")
+        for allowed in ALLOWED_HASHES:
+            line = line.replace(allowed, "<allowed-hash>")
         for name, pattern in PATTERNS.items():
             for m in pattern.finditer(line):
                 value = m.group(0)
