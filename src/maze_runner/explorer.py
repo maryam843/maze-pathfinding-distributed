@@ -1,8 +1,9 @@
 # Provided by DSAI3202 course staff (UDST, Spring 2025).
 # Modified by me: yes (2025: time.time -> time.perf_counter, zero-division guard and 6-decimal
-# output in print_statistics. 2026: pygame imported only when visualize=True, statistics printed
-# only when verbose=True, a max_moves guard that stops a wall follower caught in a cycle, no
-# turn-around step into a wall (boxed-in start), reformatted with ruff.)
+# output in print_statistics)
+# Modified in 2026: pygame imported only when visualize=True,
+# statistics printed only when verbose=True, a max_moves guard that stops a wall follower caught
+# in a cycle, no turn-around step into a wall (boxed-in start), reformatted with ruff.
 """
 Maze Explorer module that implements automated maze solving.
 """
