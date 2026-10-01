@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -127,3 +128,34 @@ def test_benchmark_records_backends_it_cannot_run(tmp_path, monkeypatch):
                        "--backend-mazes", "static", "--out-dir", str(out)]) == 0  # fmt: skip
     data = json.loads((out / "summary.json").read_text())
     assert data["backends_not_run"][0]["reason"] == "mpiexec not found on PATH"
+
+
+def _git(repo, *args):
+    ident = ["-c", "user.name=Maryam Mahaboob",
+             "-c", "user.email=185722545+maryam843@users.noreply.github.com"]  # fmt: skip
+    subprocess.run(["git", *ident, *args], cwd=repo, check=True, capture_output=True)
+
+
+def test_pii_scan_checks_its_own_file_in_history_and_at_head(tmp_path):
+    """The scanner used to skip scripts/pii_scan.py, so an ID left in its history went unseen."""
+    planted = "60" + "1234567"  # split so this test file itself stays clean
+    repo = tmp_path / "repo"
+    own = repo / "scripts" / "pii_scan.py"
+    own.parent.mkdir(parents=True)
+    _git(tmp_path, "init", "-q", str(repo))
+    own.write_text("x = 1\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "start")
+    own.write_text(f"x = 1  # e.g. id_{planted}\n")
+    _git(repo, "commit", "-q", "-am", "add comment")
+    own.write_text("x = 1\n")
+    _git(repo, "commit", "-q", "-am", "remove comment")
+
+    hits, n_files, n_commits = pii.scan([], root=repo)
+    assert n_files == 1 and n_commits == 3
+    assert any(" diff:" in h and "id-like-number" in h for h in hits), hits  # found in history
+    assert not any(h.startswith("scripts/pii_scan.py:") for h in hits)  # clean at HEAD
+
+    own.write_text(f"x = 1  # e.g. id_{planted}\n")
+    hits, _, _ = pii.scan([], root=repo)
+    assert any(h.startswith("scripts/pii_scan.py:1: id-like-number") for h in hits), hits

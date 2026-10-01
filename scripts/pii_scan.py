@@ -77,32 +77,33 @@ def findings_in_text(text: str, where: str, deny: list[str]) -> list[str]:
     return hits
 
 
-def git(*args: str) -> str:
+def git(*args: str, root: Path = ROOT) -> str:
     return subprocess.run(
-        ["git", *args], cwd=ROOT, capture_output=True, text=True, check=True, errors="replace"
+        ["git", *args], cwd=root, capture_output=True, text=True, check=True, errors="replace"
     ).stdout
 
 
-def scan(deny: list[str]) -> tuple[list[str], int, int]:
+def scan(deny: list[str], root: Path = ROOT) -> tuple[list[str], int, int]:
+    """Scan every tracked file and every commit under `root`, this scanner's own file included.
+
+    (It used to skip itself, and that gap let a real identifier sit in its history unnoticed.)
+    """
     hits = []
-    files = git("ls-files").splitlines()
+    files = git("ls-files", root=root).splitlines()
     for name in files:
-        if name == "scripts/pii_scan.py":
-            continue  # this file contains the patterns themselves
-        data = (ROOT / name).read_bytes()
+        data = (root / name).read_bytes()
         if b"\0" in data[:8000]:
             continue  # binary (PNG/GIF): checked through history metadata only
         hits += findings_in_text(data.decode("utf-8", "replace"), name, deny)
-    commits = git("rev-list", "--all").split()
+    commits = git("rev-list", "--all", root=root).split()
     for sha in commits:
-        meta = git("show", "-s", "--format=%an%n%ae%n%cn%n%ce%n%B", sha)
+        meta = git("show", "-s", "--format=%an%n%ae%n%cn%n%ce%n%B", sha, root=root)
         _, author_email, _, committer_email, *_ = meta.splitlines() + [""] * 5
         for email in (author_email, committer_email):
             if email not in ALLOWED_EMAILS:
                 hits.append(f"commit {sha[:8]}: identity e-mail not allowed: {email}")
         hits += findings_in_text(meta, f"commit {sha[:8]} message", deny)
-        patch = git("show", "--format=", "--no-color", "--text", sha, "--", ".",
-                    ":(exclude)scripts/pii_scan.py")  # fmt: skip
+        patch = git("show", "--format=", "--no-color", "--text", sha, root=root)
         added = "\n".join(
             line[1:]
             for line in patch.splitlines()
