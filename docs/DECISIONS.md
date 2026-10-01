@@ -2,10 +2,14 @@
 
 Each entry: the choice, the alternatives, why this one, and what it costs.
 
+These decisions were made during the 2026 rebuild, which Claude Code implemented from my written
+specification and I reviewed. "I" and "my" below refer to my 2025 code; the rest describes the
+rebuild.
+
 ## 1. One coordinate convention, converted in one place
 
 The provided `Maze` stores positions as `(x, y)` = `(col, row)`, while grids are indexed
-`grid[row][col]`. All my search code uses `(row, col)`, and the only conversion is
+`grid[row][col]`. All the search code uses `(row, col)`, and the only conversion is
 `to_row_col()`, called from `MazeProblem.from_maze()`. The alternative was to keep `(x, y)`
 everywhere to match the provided code, but my 2025 BFS and A* were already written in
 `(row, col)`, and mixing the two is how you end up solving the wrong cell. In 2025 I avoided
@@ -33,7 +37,7 @@ maze that is its own mirror image.
 
 ## 4. Keep the provided explorer's behaviour, add guards around it
 
-I did not rewrite the explorer. I only added: lazy `import pygame`, optional printing, a
+The rebuild did not rewrite the explorer. It only added: lazy `import pygame`, optional printing, a
 `max_moves` guard of `4 * width * height`, and a check before the turn-around step. The
 explorer's state is (cell, facing), so it has at most 4 x width x height distinct states,
 and more moves than that means it is going round a cycle. This bound comes from that
@@ -47,9 +51,9 @@ backtracks, not the 30 I wrote in 2025.
 
 Heap entries are still `(f, g, cell)`, so ties on `f` go to the smaller `g`. The one change:
 a cell already expanded is skipped when an older heap entry for it comes out. Without this,
-a cell can be expanded twice and "nodes expanded" overstates the work. I considered
-tie-breaking towards larger `g` (deeper nodes first), which usually expands fewer nodes. I
-left it out so the comparison is about my 2025 algorithm, not a tuned one. The cost is
+a cell can be expanded twice and "nodes expanded" overstates the work. Tie-breaking towards
+larger `g` (deeper nodes first), which usually expands fewer nodes, was considered and left out
+so the comparison is about my 2025 algorithm, not a tuned one. The cost is
 probably a few more expansions than necessary.
 
 ## 6. What "nodes expanded" means for each strategy
@@ -92,20 +96,20 @@ unpickling broker data is unsafe). The cost is a bigger message.
 
 ## 10. Celery: `ResultSet.join()` instead of `.get()` on each result
 
-My first 2026 client called `.get()` on each result in turn, like the 2025 code. With the
+The first 2026 client called `.get()` on each result in turn, like the 2025 code. With the
 `rpc://` backend some rounds stalled for exactly 1 or 2 s, while the worker log showed all
 four tasks finished within about 10 ms. Collecting the results with
 `ResultSet(...).join(timeout=...)` removed the stalls: ten rounds in a row took 10-40 ms
-each. I did not dig into kombu to find the exact cause, so this is a measured workaround,
+each. The exact cause inside kombu was not investigated, so this is a measured workaround,
 not an explanation. The cost is that a timeout reports how many results arrived, not which
 ones.
 
 ## 11. `forkserver` instead of `fork` for the multiprocessing pool
 
 When the process had already talked to Celery, a `fork`-based pool broke the parent's broker
-connection ("connection reset by peer" on the next Celery call). I reproduced it with fork
-and not with forkserver or spawn. My understanding is that forked children inherit the open
-AMQP socket and Celery's after-fork cleanup closes it from inside the child. So the pool now
+connection ("connection reset by peer" on the next Celery call). It reproduced with fork and
+not with forkserver or spawn. The likely mechanism (not proven) is that forked children inherit
+the open AMQP socket and Celery's after-fork cleanup closes it from inside the child. So the pool now
 uses `forkserver` where it exists (Linux, macOS; Python 3.14's default on Linux) and `spawn`
 otherwise (Windows); `MAZE_MP_START_METHOD` overrides. The benchmark also runs the Celery
 client in its own process, as a real client would. The cost: pool start-up is slower than
