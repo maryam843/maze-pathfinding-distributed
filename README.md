@@ -1,5 +1,7 @@
 # Maze pathfinding, sequential and distributed
 
+[![CI](https://github.com/maryam843/maze-pathfinding-distributed/actions/workflows/ci.yml/badge.svg)](https://github.com/maryam843/maze-pathfinding-distributed/actions/workflows/ci.yml)
+
 I compare four ways of getting through a maze (two wall followers, BFS and A*) and run them in parallel with multiprocessing, MPI and Celery + RabbitMQ.
 
 Originally built for DSAI3202 Parallel & Distributed Computing, UDST, Spring 2025. Fixed and extended in 2026.
@@ -180,7 +182,7 @@ These are the numbers I submitted in 2025, from `results.csv` in my course repos
 - The mazes are small, so start-up overhead dominates the parallel timings. The comparison shows overhead more than speed-up.
 - Timings depend on the machine; they come from one 4-core cloud machine. Move counts and nodes expanded do not change between machines or runs.
 - The random mazes have no loops, which makes A*'s advantage over BFS small there.
-- Docker compose was not run on the machine that produced `results/`. The compose smoke test (RabbitMQ, a worker and a client that writes its results) passed in GitHub Actions: https://github.com/maryam843/maze-pathfinding-distributed/actions/runs/36753513866
+- Docker compose was not run on the machine that produced `results/`. The compose smoke test (RabbitMQ, a worker and a client that writes its results) passes in GitHub Actions (the `docker` job): https://github.com/maryam843/maze-pathfinding-distributed/actions
 - The wall followers' "nodes" are distinct cells visited, not queue expansions, so they are not directly comparable with BFS and A*.
 - Windows CI runs 149 of the 153 tests by design: the fork and forkserver start-method cases do not exist on Windows, and 10 of the 149 skip because MPI and RabbitMQ are not installed on the Windows runner.
 
