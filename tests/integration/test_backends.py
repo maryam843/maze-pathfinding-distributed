@@ -18,11 +18,39 @@ import pytest
 from conftest import mpiexec_path
 
 from maze_runner.backends.common import moves_by_strategy, run_sequential
-from maze_runner.backends.multiproc import run_multiprocessing
+from maze_runner.backends.multiproc import pick_start_method, run_multiprocessing
 from maze_runner.strategies import load_problem
 
 MAZES = [("static", ["--maze", "static"]),
          ("random", ["--maze", "random", "--size", "25", "--seed", "4"])]  # fmt: skip
+
+
+_BARRIER = None
+
+
+def _set_barrier(barrier):
+    global _BARRIER
+    _BARRIER = barrier
+
+
+def _meet_at_barrier(_):
+    # Returns only when two jobs are inside the pool at the same moment. A worker that took one
+    # job is blocked here, so the other job must be running in a second process.
+    _BARRIER.wait(timeout=120)
+    return os.getpid()
+
+
+def assert_pool_runs_two_jobs_at_once(method):
+    """Deterministic concurrency check for a pool made with this start method.
+
+    Not timing-based: it passes only if two pool processes run at the same time, and fails
+    (BrokenBarrierError) only if a second worker cannot start within 120 s.
+    """
+    ctx = mp.get_context(pick_start_method(method))
+    barrier = ctx.Barrier(2)
+    with ctx.Pool(2, initializer=_set_barrier, initargs=(barrier,)) as pool:
+        pids = pool.map(_meet_at_barrier, range(2), chunksize=1)
+    assert len(set(pids)) == 2 and os.getpid() not in pids
 
 
 def problem_for(kind):
@@ -38,10 +66,11 @@ def expected(kind):
 def test_multiprocessing_matches_sequential(kind, _, method):
     run = run_multiprocessing(problem_for(kind), start_method=method)
     assert moves_by_strategy(run["results"]) == expected(kind)
-    # The work ran in pool processes, not in this one. (How the 4 jobs spread over the 4
-    # processes is up to Pool: with spawn, one fast-starting child can take all of them.)
+    # The work ran in pool processes, not in this one. (How the 4 jobs spread over the pool is
+    # up to Pool: with spawn, one fast-starting child can take all of them, so that is not
+    # asserted. Real concurrency is checked separately with a barrier.)
     assert all(r["pid"] != os.getpid() for r in run["results"])
-    assert run["workers"] == 4
+    assert_pool_runs_two_jobs_at_once(method)
     assert run["wall_total_s"] >= run["wall_compute_s"] > 0
 
 
