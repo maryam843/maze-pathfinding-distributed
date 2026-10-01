@@ -124,11 +124,11 @@ A* expands fewer cells than BFS on every size, but only by about 8 to 18% on ave
 | Maze | Backend | Total wall ms (mean ± sd) | Work phase only ms | Repeats |
 |---|---|---|---|---|
 | static | sequential (1 process) | 6.70 ± 0.37 | - | 5 |
-| static | multiprocessing (4 processes) | 69.11 ± 15.95 | 47.27 ± 4.93 | 5 |
+| static | multiprocessing (pool of 4) | 69.11 ± 15.95 | 47.27 ± 4.93 | 5 |
 | static | MPI (-n 4) | 551.36 ± 13.98 | 3.66 ± 1.79 | 5 |
 | static | Celery (4 worker processes) | 17.28 ± 7.62 | - | 5 |
 | random-300-seed0 | sequential (1 process) | 207.47 ± 5.41 | - | 5 |
-| random-300-seed0 | multiprocessing (4 processes) | 171.98 ± 10.22 | 154.83 ± 9.07 | 5 |
+| random-300-seed0 | multiprocessing (pool of 4) | 171.98 ± 10.22 | 154.83 ± 9.07 | 5 |
 | random-300-seed0 | MPI (-n 4) | 716.94 ± 32.44 | 101.51 ± 17.66 | 5 |
 | random-300-seed0 | Celery (4 worker processes) | 117.47 ± 17.04 | - | 5 |
 <!-- /claims -->

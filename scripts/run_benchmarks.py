@@ -122,7 +122,7 @@ def backend_label(name: str, run: dict, mpi_np: int) -> str:
     if name == "sequential":
         return "sequential (1 process)"
     if name == "multiprocessing":
-        return f"multiprocessing ({run['workers']} processes)"
+        return f"multiprocessing (pool of {run['workers']})"
     if name == "mpi":
         return f"MPI (-n {mpi_np})"
     return f"Celery ({(run['workers'] or {}).get('processes', '?')} worker processes)"
