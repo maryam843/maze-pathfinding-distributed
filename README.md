@@ -184,7 +184,7 @@ These are the numbers I submitted in 2025, from `results.csv` in my course repos
 - The random mazes have no loops, which makes A*'s advantage over BFS small there.
 - Docker compose was not run on the machine that produced `results/`. The compose smoke test (RabbitMQ, a worker and a client that writes its results) passes in GitHub Actions (the `docker` job): https://github.com/maryam843/maze-pathfinding-distributed/actions
 - The wall followers' "nodes" are distinct cells visited, not queue expansions, so they are not directly comparable with BFS and A*.
-- Windows CI runs 149 of the 153 tests by design: the fork and forkserver start-method cases do not exist on Windows, and 10 of the 149 skip because MPI and RabbitMQ are not installed on the Windows runner.
+- Windows CI runs 150 of the 154 tests by design: the fork and forkserver start-method cases do not exist on Windows, and 10 of the 150 skip because MPI and RabbitMQ are not installed on the Windows runner.
 
 ## What I learned
 
