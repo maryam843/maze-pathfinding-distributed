@@ -9,7 +9,7 @@ Originally built for DSAI3202 Parallel & Distributed Computing, UDST, Spring 202
 - **What it is:** a small maze game from my parallel computing course, plus my own solvers and three ways to run them in parallel.
 - **The problem:** the explorer the course gave us follows the right-hand wall and needs 1,279 moves on the course's fixed maze. I wanted the shortest route, and to see what running the solvers in parallel really buys.
 - **How it works:** a maze (a grid of walls and open cells, with an entrance and an exit) goes in. Four strategies search it, either one after another or spread over processes, MPI ranks or Celery workers. Out come the moves, the search effort and the timings, saved to `results/`.
-- **2025 vs 2026:** in 2025 I wrote BFS, A* and the parallel runners, but my BFS and A* solved their own copies of the maze with different start and exit cells, so the comparison was invalid. In 2026 I pointed them at the real maze, fixed the timing and the parallel comparison, and added tests, CI and Docker.
+- **2025 vs 2026:** in 2025 I wrote BFS, A* and the parallel runners, but my BFS and A* solved their own copies of the maze with different start and exit cells, so the comparison was invalid. In 2026 a review I ran found the problem, and a rebuild implemented by Claude Code from my specification pointed them at the real maze, fixed the timing and the parallel comparison, and added tests, CI and Docker.
 - **Main result:** on the real maze BFS and A* both find the shortest route, 127 moves, 90.1% fewer than the wall follower. Caveat: the parallel versions are slower than running sequentially on small mazes, because start-up costs more than the search itself.
 - **Why it matters:** shortest-path search and task queues are the same building blocks used in route planning and logistics, which is the kind of work I want to do in Qatar.
 
@@ -26,16 +26,16 @@ The course gave us a Pygame maze game with an automatic explorer that keeps its 
 There is no external data. Mazes are made by code:
 
 - the **static maze** from the course: 48 rows x 62 columns, entrance at (row 0, col 11), exit at (row 47, col 13). It has loops, so wall following is far from the shortest route.
-- **random mazes** from the course's generator (depth-first carving), which I changed to accept a seed. I use sizes 10, 30, 50 and 80 with seeds 0 to 9, so every maze can be rebuilt exactly. These mazes have no loops, so there is exactly one route between two cells.
+- **random mazes** from the course's generator (depth-first carving), which the 2026 rebuild changed to accept a seed. The benchmark uses sizes 10, 30, 50 and 80 with seeds 0 to 9, so every maze can be rebuilt exactly. These mazes have no loops, so there is exactly one route between two cells.
 
 ## Method
 
 | Strategy | Who wrote it | Idea |
 |---|---|---|
 | right-hand | course staff | keep the right hand on the wall |
-| left-hand | me (2026) | the same explorer with its two turns swapped |
-| BFS | me (2025, fixed 2026) | search outwards in rings; shortest route guaranteed |
-| A* | me (2025, fixed 2026) | like BFS but tries cells closer to the exit first (Manhattan distance) |
+| left-hand | 2026 rebuild (Claude Code, my spec) | the same explorer with its two turns swapped |
+| BFS | me (2025); rebuilt 2026 with Claude Code | search outwards in rings; shortest route guaranteed |
+| A* | me (2025); rebuilt 2026 with Claude Code | like BFS but tries cells closer to the exit first (Manhattan distance) |
 
 Every returned route is checked: it must start at the entrance, end at the exit, use only open cells and move one cell up, down, left or right at a time. "Moves" is the number of steps (cells in the route minus one). "Nodes expanded" is how many cells BFS or A* took off their queue. For the wall followers, which have no queue, it is the number of different cells they stood on.
 
@@ -164,15 +164,15 @@ These are the numbers I submitted in 2025, from `results.csv` in my course repos
 | A* | 102 | 0.000998 s | different start and exit cell from the real maze |
 | BFS | 119 | 0.001502 s | an edited copy of the maze, different exit, and moves counted one too many |
 
-## What went wrong and how I fixed it
+## What went wrong and how it was fixed
 
 - **Wrong goals (bug B44).** My 2025 BFS and A* each had their own pasted copy of the maze with a different start and exit, and the BFS copy had six edited rows. So "1,279 moves down to 102/119" compared three different problems. Now both read the maze, entrance and exit from the game (`MazeProblem.from_maze`), with one helper converting the game's (x, y) into (row, col). Both return 127 on the real maze, and a regression test fails on the 2025 files.
-- **Timing included the display (B45, B47).** My BFS timer ran around a 3-second pygame window, and the 2025 explorer time of 43 s was a run with the display on. The timer now stops before anything is drawn. I also removed a fake "backtracks = moves - 1" number from BFS.
+- **Timing included the display (B45, B47).** My BFS timer ran around a 3-second pygame window, and the 2025 explorer time of 43 s was a run with the display on. The timer now stops before anything is drawn. The rebuild also removed a fake "backtracks = moves - 1" number from BFS.
 - **Results appended instead of replaced (B46).** Each run added rows to `results.csv`. Now one script writes all result files fresh.
 - **Identical explorers (B48, B51).** In 2025 my MPI and multiprocessing runs gave every worker the same explorer on the same maze, so "best explorer" was timing noise, and my Celery task built a new random maze for every worker. Now each worker gets the same maze and a different strategy, and the results are checked by maze fingerprint.
 - **Screenshot not reproducible.** My 2025 Celery screenshot showed four identical 21-move results in a format the committed code does not print. Instead of screenshots, results now come from scripts, with the machine and versions saved next to them.
 - **Smaller fixes.** Celery tasks now expire and the client says "start the worker first" instead of hanging (B49). Backtracks are reported, not hard-coded to 0 (B50). mpi4py and celery are in the pinned requirements (B52). pygame is only imported when a window is opened, so everything runs headless (B53).
-- **Found in 2026.** Property tests found that the course explorer walks through walls when the start cell has no open neighbour; it now stops instead. Reading the explorer showed its backtracking can never run, which is why the real backtrack count is 0 (I wrote 30 in 2025). Collecting Celery results one by one sometimes stalled for 1 to 2 seconds, and a `fork` process pool broke an open Celery connection. Both are fixed and explained in `docs/DECISIONS.md`.
+- **Found during the 2026 rebuild.** Property tests found that the course explorer walks through walls when the start cell has no open neighbour; it now stops instead. Reading the explorer showed its backtracking can never run, which is why the real backtrack count is 0 (I wrote 30 in 2025). Collecting Celery results one by one sometimes stalled for 1 to 2 seconds, and a `fork` process pool broke an open Celery connection. Both are fixed and explained in `docs/DECISIONS.md`.
 
 ## Limitations
 
@@ -189,9 +189,9 @@ These are the numbers I submitted in 2025, from `results.csv` in my course repos
 - Always check where a timer starts and stops. Mine was measuring a window staying open for 3 seconds.
 - Parallel does not mean faster. For small tasks, starting processes costs more than the work.
 - Mixing (x, y) and (row, col) is an easy way to solve the wrong maze; converting in one place fixed it.
-- Property-based tests find cases I would not write by hand, like a start cell with no way out.
+- Property-based tests find cases hand-written tests miss, like a start cell with no way out.
 - Process start methods matter: forking a process that holds a network connection can break that connection.
-- Writing tests that fail on my old code was the clearest way to show what each fix changed.
+- Asking for tests that fail on my old code was the clearest way to show what each fix changed.
 
 ## How to run
 
@@ -256,17 +256,24 @@ results/ figures/      generated by the scripts above
 docker/ docs/          Dockerfile + compose; DECISIONS.md
 ```
 
+## How this was built
+
+- 2025: I wrote BFS, A* and the multiprocessing, MPI and Celery runners for the DSAI3202 assignment. That code is unchanged in `original_2025/` and in the first commit. The course staff provided the maze game and the right-hand explorer.
+- 2026: a review I ran found that my solvers had solved the wrong copy of the maze. The rebuild in the rest of this repository was implemented by Claude Code from my written specification; I directed it, reviewed the results and decided what to fix.
+- Course staff files are credited below, each with a header saying what was changed and when.
+- The commit history matches this: the first commit is my 2025 code, every later commit is the 2026 rebuild.
+
 ## Credits
 
-The maze game is by the DSAI3202 course staff (UDST, Spring 2025); the instructor asked students to keep coursework public. Each course file has a header saying whether I changed it:
+The maze game is by the DSAI3202 course staff (UDST, Spring 2025); the instructor asked students to keep coursework public. Each course file has a header saying whether it was changed, by me in 2025 or in the 2026 rebuild:
 
 - `src/maze_runner/maze.py` (modified: optional seed)
 - `src/maze_runner/explorer.py` (modified: lazy pygame import, optional printing, cycle guard, no step into a wall)
 - `src/maze_runner/constants.py` (modified in 2025: frame rate)
 - `original_2025/main.py`, `original_2025/requirements.txt`, `original_2025/src/{__init__,maze,game,player,constants,explorer}.py` (as provided or with my 2025 changes)
 
-Everything else (BFS, A*, the left-hand explorer, the parallel runners, benchmark, tests, figures, CI and Docker setup) is my work.
+My 2025 code is in `original_2025/` (BFS, A*, and the multiprocessing, MPI and Celery runners). Everything else in this repository (the `maze_runner` package including the left-hand explorer, the benchmark, tests, figures, CI and Docker setup) was implemented in 2026 by Claude Code from my written specification, which I directed and reviewed.
 
 ## Licence
 
-My code is under the MIT licence (see `LICENSE`). The course files listed above belong to the course staff.
+The code in this repository, apart from the course files, is under the MIT licence (see `LICENSE`). The course files listed above belong to the course staff.
