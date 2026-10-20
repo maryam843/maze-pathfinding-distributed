@@ -3,7 +3,8 @@
 # output in print_statistics)
 # Modified in 2026: pygame imported only when visualize=True,
 # statistics printed only when verbose=True, a max_moves guard that stops a wall follower caught
-# in a cycle, no turn-around step into a wall (boxed-in start), reformatted with ruff.
+# in a cycle, no turn-around step into a wall (boxed-in start), some comments reworded,
+# reformatted with ruff.
 """
 Maze Explorer module that implements automated maze solving.
 """
@@ -15,7 +16,7 @@ from .constants import BLUE, WHITE, CELL_SIZE, WINDOW_SIZE
 
 
 class ExplorerStuckError(RuntimeError):
-    """Raised when the explorer cannot reach the exit (2026)."""
+    """Raised when the explorer cannot reach the exit."""
 
 
 class ExplorerCycleError(ExplorerStuckError):
@@ -36,11 +37,11 @@ class Explorer:
         self.backtrack_path = []
         self.backtrack_count = 0  # Count number of backtrack operations
         self.verbose = verbose
-        # 2026: the explorer's state is (cell, facing), so there are at most 4 * width * height
-        # distinct states. More moves than that means it is going round a cycle forever.
+        # The state is (cell, facing): at most 4 * width * height distinct states, so more
+        # moves than that means a cycle.
         self.max_moves = max_moves if max_moves is not None else 4 * maze.width * maze.height
         if visualize:
-            import pygame  # 2026: lazy import so headless runs do not need a display
+            import pygame  # lazy import so headless runs do not need a display
 
             self._pygame = pygame
             pygame.init()
@@ -59,7 +60,7 @@ class Explorer:
         self.direction = (y, -x)
 
     def can_move_forward(self) -> bool:
-        """Check if we can move forward in the current direction."""
+        """Check if the explorer can move forward in the current direction."""
         dx, dy = self.direction
         new_x, new_y = self.x + dx, self.y + dy
         return (
@@ -87,9 +88,9 @@ class Explorer:
         return self.move_history[0] == self.move_history[1] == self.move_history[2]
 
     def backtrack(self) -> bool:
-        """Backtrack to the last position where we had multiple choices."""
+        """Backtrack to the last position that had multiple choices."""
         if not self.backtrack_path:
-            # If we don't have a backtrack path, find one
+            # If there is no backtrack path yet, find one
             self.backtrack_path = self.find_backtrack_path()
 
         if self.backtrack_path:
@@ -109,7 +110,7 @@ class Explorer:
         current_pos = (self.x, self.y)
         visited = set()
 
-        # Look for a position where we had multiple choices
+        # Look for a position that had multiple choices
         for i in range(len(self.moves) - 1, -1, -1):
             pos = self.moves[i]
             if pos in visited:
@@ -228,22 +229,21 @@ class Explorer:
                     self.move_forward()
                     visited.add((self.x, self.y))
                 else:
-                    # If we can't move right, try forward
+                    # If right is blocked, try forward
                     self.turn_left()
                     if self.can_move_forward():
                         self.move_forward()
                         visited.add((self.x, self.y))
                     else:
-                        # If we can't move forward, try left
+                        # If forward is blocked, try left
                         self.turn_left()
                         if self.can_move_forward():
                             self.move_forward()
                             visited.add((self.x, self.y))
                         else:
-                            # If we can't move left, turn around
+                            # If left is blocked, turn around
                             self.turn_left()
-                            # 2026: only a start cell with no open neighbour gets here with a
-                            # wall behind; stepping anyway walked through walls.
+                            # Only a start cell with no open neighbour has a wall behind.
                             if not self.can_move_forward():
                                 raise ExplorerStuckError("boxed in: no open cell next to the start")
                             self.move_forward()

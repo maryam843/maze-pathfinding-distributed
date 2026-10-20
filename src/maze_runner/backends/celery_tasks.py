@@ -1,9 +1,7 @@
 """The Celery task: solve the maze it is given with the strategy it is given.
 
-In 2025 the task built its own random maze (so four workers solved four different mazes, B48),
-reported no backtracks (the client printed a hard-coded 0, B50) and swallowed errors by
-returning None. Now the maze travels with the task, the result carries the real counters,
-and errors propagate to the client as task failures.
+The maze travels with the task, so every worker solves the same maze. The result carries the
+real counters (moves, nodes, backtracks), and errors reach the client as task failures.
 """
 
 from __future__ import annotations

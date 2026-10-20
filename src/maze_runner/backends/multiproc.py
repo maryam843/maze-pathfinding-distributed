@@ -26,9 +26,8 @@ def _worker(job: tuple[MazeProblem, str]) -> dict:
 def pick_start_method(requested: str | None = None) -> str:
     """Explicit argument, else MAZE_MP_START_METHOD, else forkserver where it exists, else spawn.
 
-    Plain fork is avoided: it copies open sockets into the children, and Celery's after-fork
-    hook then closes the parent's broker connection from inside the child (see DECISIONS.md).
-    forkserver forks from a clean server process and is Python 3.14's default on Linux.
+    Plain fork is avoided because it copies open broker sockets into the children.
+    forkserver starts children from a clean server process.
     """
     method = requested or os.environ.get("MAZE_MP_START_METHOD")
     if method:

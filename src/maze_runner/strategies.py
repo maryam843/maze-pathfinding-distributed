@@ -3,8 +3,7 @@
 Coordinate convention: every grid here is indexed grid[row][col], 0 = open, 1 = wall.
 The provided Maze class stores positions as (x, y) = (col, row). All code in this module
 works in (row, col), and the conversion happens in exactly one place: to_row_col(), used by
-MazeProblem.from_maze(). (In 2025 my BFS and A* skipped this step and used their own
-hard-coded grids and start/goal cells instead of the game's maze. That was bug B44.)
+MazeProblem.from_maze(), so every strategy solves the game's own maze, entrance and exit.
 """
 
 from __future__ import annotations

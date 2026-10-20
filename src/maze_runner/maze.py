@@ -14,8 +14,7 @@ class Maze:
         self.width = width
         self.height = height
         self.grid = [[1 for _ in range(width)] for _ in range(height)]
-        # 2026: a private generator, so a seed gives the same maze every time and
-        # seed=None still gives a different maze each run (as in 2025).
+        # A private generator: a seed gives the same maze every time, seed=None a new one.
         self._rng = random.Random(seed)
         self.generate_maze()
         self.set_start_end_positions()

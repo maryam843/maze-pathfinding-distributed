@@ -81,8 +81,8 @@ def run_celery(
         [solve_task.apply_async(args=(payload, s), expires=expires) for _, s in jobs]
     )
     try:
-        # join() collects whichever result arrives first. Calling .get() on each result in turn
-        # (as in 2025) made the rpc:// backend stall for 1-2 s in some rounds (see DECISIONS.md).
+        # join() collects whichever result arrives first; calling .get() on each result in turn
+        # can stall the rpc:// backend for 1-2 s.
         results = pending.join(timeout=timeout)
     except CeleryTimeoutError as exc:
         done = pending.completed_count()
