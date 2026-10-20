@@ -1,11 +1,16 @@
-"""Check that every results table in README.md matches results/summary.json exactly.
+"""Check that every results table in README.md matches a results folder.
 
 Tables sit between markers such as <!-- claims:static --> and <!-- /claims -->. For each one
-this script rebuilds the table from the results file and compares the text row by row, so
-any number that drifts from the saved results fails the check.
+this script rebuilds the table from DIR/summary.json and compares it with the README.
 
-    python scripts/check_readme_claims.py            # check (exit 1 on any mismatch)
-    python scripts/check_readme_claims.py --print    # print the expected tables
+Against the committed results/ (the default) every cell must match exactly. Against any other
+folder, such as the out/results/ that run_benchmarks.py writes by default, move and node counts
+must still match exactly, but timings depend on the machine: timing differences, and backends
+that could not run there, are printed as info and do not fail the check.
+
+    python scripts/check_readme_claims.py                      # committed results (exact)
+    python scripts/check_readme_claims.py --results out/results
+    python scripts/check_readme_claims.py --print              # print the expected tables
 """
 
 from __future__ import annotations
@@ -106,9 +111,71 @@ def expected_tables(data: dict) -> dict[str, list[str]]:
     return out
 
 
-def check(readme: str, data: dict) -> list[str]:
+# Column index of the timing cell in tables that mix counts and timings.
+TIMING_COLUMN = {"static": 4}
+# Every cell of this table is a wall time, or a label or repeat count that depends on the machine.
+TIMING_TABLES = {"backends"}
+
+
+def cells(line: str) -> list[str]:
+    return [c.strip() for c in line.strip().strip("|").split("|")]
+
+
+def compare_lines(kind: str, got: list[str], want: list[str]) -> list[str]:
+    problems = []
+    for i in range(max(len(got), len(want))):
+        g = got[i] if i < len(got) else "<missing>"
+        w = want[i] if i < len(want) else "<extra line>"
+        if g != w:
+            problems.append(f"[{kind}] line {i + 1}: README has {g!r}, results say {w!r}")
+    return problems
+
+
+def compare_timing_column(kind: str, got: list[str], want: list[str]) -> tuple[list, list]:
+    """Exact on every cell except the timing column, whose differences are info."""
+    if len(got) != len(want):
+        return compare_lines(kind, got, want), []
+    problems, notes, col = [], [], TIMING_COLUMN[kind]
+    for i, (g, w) in enumerate(zip(got, want, strict=True)):
+        gc, wc = cells(g), cells(w)
+        if len(gc) != len(wc) or gc[:col] + gc[col + 1 :] != wc[:col] + wc[col + 1 :]:
+            problems.append(f"[{kind}] line {i + 1}: README has {g!r}, results say {w!r}")
+        elif gc[col] != wc[col]:
+            notes.append(f"[{kind}] {gc[0]}: README {gc[col]!r}, these results {wc[col]!r}")
+    return problems, notes
+
+
+def compare_backend_moves(got: list[str], want: list[str]) -> tuple[list, list]:
+    """Move counts must match for every backend that ran; a backend that did not run is info."""
+    if len(got) < 2 or len(want) < 2:
+        return compare_lines("backend_moves", got, want), []
+    problems, notes = [], []
+    got_head, want_head = cells(got[0]), cells(want[0])
+    want_rows = {tuple(cells(w)[:2]): cells(w) for w in want[2:]}
+    for name in got_head[2:]:
+        if name not in want_head:
+            notes.append(f"[backend_moves] {name}: not run in these results")
+    for i, g in enumerate(got[2:], start=3):
+        gc = cells(g)
+        wc = want_rows.pop(tuple(gc[:2]), None)
+        if wc is None:
+            problems.append(f"[backend_moves] line {i}: README row {g!r} is not in the results")
+            continue
+        for name, value in zip(got_head[2:], gc[2:], strict=False):
+            if name in want_head and wc[want_head.index(name)] != value:
+                problems.append(
+                    f"[backend_moves] line {i}: {name} README has {value!r}, "
+                    f"results say {wc[want_head.index(name)]!r}"
+                )
+    for key in want_rows:
+        problems.append(f"[backend_moves] results row {' | '.join(key)!r} is not in the README")
+    return problems, notes
+
+
+def compare(readme: str, data: dict, exact: bool = True) -> tuple[list[str], list[str]]:
+    """Return (mismatches, info notes). exact=False lets timings differ (see module docstring)."""
     expected = expected_tables(data)
-    problems, seen = [], set()
+    problems, notes, seen = [], [], set()
     for kind, body in BLOCK.findall(readme):
         seen.add(kind)
         if kind not in expected:
@@ -116,34 +183,67 @@ def check(readme: str, data: dict) -> list[str]:
             continue
         got = [line.strip() for line in body.strip().splitlines()]
         want = expected[kind]
-        if got != want:
-            for i in range(max(len(got), len(want))):
-                g = got[i] if i < len(got) else "<missing>"
-                w = want[i] if i < len(want) else "<extra line>"
-                if g != w:
-                    problems.append(f"[{kind}] line {i + 1}: README has {g!r}, results say {w!r}")
+        if got == want:
+            continue
+        if exact:
+            problems += compare_lines(kind, got, want)
+        elif kind in TIMING_TABLES:
+            notes += compare_lines(kind, got, want)
+        elif kind in TIMING_COLUMN:
+            p, n = compare_timing_column(kind, got, want)
+            problems, notes = problems + p, notes + n
+        elif kind == "backend_moves":
+            p, n = compare_backend_moves(got, want)
+            problems, notes = problems + p, notes + n
+        else:
+            problems += compare_lines(kind, got, want)
     for kind in expected:
         if kind not in seen:
             problems.append(f"README has no <!-- claims:{kind} --> table")
-    return problems
+    return problems, notes
+
+
+def check(readme: str, data: dict) -> list[str]:
+    """Exact check: every cell must match."""
+    return compare(readme, data, exact=True)[0]
+
+
+def results_file(path: Path) -> Path:
+    return path / "summary.json" if path.is_dir() else path
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Check README numbers against results/.")
+    parser = argparse.ArgumentParser(description="Check README numbers against a results folder.")
     parser.add_argument("--readme", type=Path, default=ROOT / "README.md")
-    parser.add_argument("--results", type=Path, default=ROOT / "results" / "summary.json")
+    parser.add_argument(
+        "--results",
+        type=Path,
+        default=ROOT / "results",
+        help="results folder (or its summary.json); exact check only for the committed results/",
+    )
     parser.add_argument("--print", action="store_true", help="print the expected tables")
     args = parser.parse_args(argv)
-    data = json.loads(args.results.read_text(encoding="utf-8"))
+    path = results_file(args.results)
+    data = json.loads(path.read_text(encoding="utf-8"))
     if args.print:
         for kind, lines in expected_tables(data).items():
             print(f"<!-- claims:{kind} -->\n" + "\n".join(lines) + "\n<!-- /claims -->\n")
         return 0
-    problems = check(args.readme.read_text(encoding="utf-8"), data)
+    exact = path.resolve() == (ROOT / "results" / "summary.json").resolve()
+    readme = args.readme.read_text(encoding="utf-8")
+    problems, notes = compare(readme, data, exact=exact)
+    for note in notes:
+        print(f"info: {note}")
     for p in problems:
         print(p, file=sys.stderr)
-    n = len(BLOCK.findall(args.readme.read_text(encoding="utf-8")))
-    print(f"{n} README tables checked, {len(problems)} mismatches")
+    n = len(BLOCK.findall(readme))
+    if exact:
+        print(f"{n} README tables checked, {len(problems)} mismatches")
+    else:
+        print(
+            f"{n} README tables checked against {args.results}, {len(problems)} mismatches in "
+            f"moves and nodes, {len(notes)} timing differences (info only)"
+        )
     return 1 if problems else 0
 
 

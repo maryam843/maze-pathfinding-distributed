@@ -1,7 +1,11 @@
-"""Regenerate every number in results/ from scratch (files are replaced, never appended).
+"""Regenerate every result from scratch (files are replaced, never appended).
+
+Results go to OUT_DIR/results/, by default out/results/, so the committed results/ stays as it
+is. `--out-dir .` writes into results/ itself.
 
     python scripts/run_benchmarks.py                      # everything that is available
     python scripts/run_benchmarks.py --backends sequential multiprocessing
+    python scripts/run_benchmarks.py --out-dir .          # replace the committed results/
 
 Backends that need outside services are recorded as "not run" with the reason instead of
 failing: MPI needs `mpiexec` on PATH, Celery needs a broker and a running worker.
@@ -203,7 +207,9 @@ def tool_version(cmd: list[str]) -> str | None:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--out-dir", type=Path, default=ROOT / "results")
+    parser.add_argument(
+        "--out-dir", type=Path, default=ROOT / "out", help="results go to OUT_DIR/results"
+    )
     parser.add_argument("--repeats", type=int, default=5)
     parser.add_argument("--sizes", type=int, nargs="+", default=[10, 30, 50, 80])
     parser.add_argument("--seeds", type=int, default=10, help="seeds 0..N-1 per size")
@@ -212,7 +218,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--mpi-np", type=int, default=4)
     args = parser.parse_args(argv)
 
-    out = args.out_dir
+    out = args.out_dir / "results"
     info = {
         "generated_utc": utc_timestamp(),
         "command": "python scripts/run_benchmarks.py " + " ".join(argv or sys.argv[1:]),

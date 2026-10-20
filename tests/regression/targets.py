@@ -66,7 +66,7 @@ class NewTarget:
         for _ in range(runs):
             with contextlib.redirect_stdout(io.StringIO()):
                 run_benchmarks.main(args)
-        return len((workdir / "static_maze.csv").read_text().strip().splitlines()) - 1
+        return len((workdir / "results" / "static_maze.csv").read_text().strip().splitlines()) - 1
 
     def moves_for_identical_celery_tasks(self, n: int) -> list[int]:
         from maze_runner.backends.celery_tasks import solve_task

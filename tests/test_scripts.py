@@ -22,6 +22,7 @@ def load_script(name):
 pii = load_script("pii_scan")
 claims = load_script("check_readme_claims")
 bench = load_script("run_benchmarks")
+figures = load_script("make_figures")
 
 
 @pytest.mark.parametrize(
@@ -105,6 +106,64 @@ def test_readme_claims_missing_block():
     assert any("no <!-- claims:static -->" in p for p in problems)
 
 
+def regenerated_elsewhere():
+    """The committed results as another machine would produce them: new timings, no MPI."""
+    data = fake_results()
+    for r in data["static_maze"]:
+        r["time_mean_s"] *= 1.7
+    for r in data["backends"]:
+        r["wall_mean_s"] *= 2.3
+    data["backends"] = [r for r in data["backends"] if r["backend"] != "mpi"]
+    data["backend_moves"] = [r for r in data["backend_moves"] if r["backend"] != "mpi"]
+    data["backends_not_run"] = [{"backend": "mpi", "maze": "static", "reason": "no mpiexec"}]
+    return data
+
+
+@pytest.mark.skipif(not (ROOT / "results" / "summary.json").exists(), reason="no results yet")
+def test_readme_claims_relaxed_check_reports_timings_as_info():
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    data = regenerated_elsewhere()
+    assert claims.check(readme, data)  # the exact check fails on these results
+    problems, notes = claims.compare(readme, data, exact=False)
+    assert problems == []
+    assert any(n.startswith("[static] A*:") for n in notes)
+    assert any(n.startswith("[backends]") for n in notes)
+    assert any("mpi: not run" in n for n in notes)
+
+
+@pytest.mark.skipif(not (ROOT / "results" / "summary.json").exists(), reason="no results yet")
+def test_readme_claims_relaxed_check_still_fails_on_counts():
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    data = regenerated_elsewhere()
+    data["static_maze"][3]["nodes_expanded"] += 1  # A* nodes
+    data["backend_moves"][0]["moves"] += 1
+    data["random_summary"][0]["moves_mean"] += 1
+    problems, _ = claims.compare(readme, data, exact=False)
+    assert any(p.startswith("[static]") for p in problems)
+    assert any(p.startswith("[backend_moves]") for p in problems)
+    assert any(p.startswith("[random]") for p in problems)
+
+
+@pytest.mark.skipif(not (ROOT / "results" / "summary.json").exists(), reason="no results yet")
+def test_readme_claims_cli_exact_for_committed_relaxed_elsewhere(tmp_path, capsys):
+    assert claims.main([]) == 0
+    assert "0 mismatches" in capsys.readouterr().out
+    folder = tmp_path / "results"
+    folder.mkdir()
+    (folder / "summary.json").write_text(json.dumps(regenerated_elsewhere()), encoding="utf-8")
+    assert claims.main(["--results", str(folder)]) == 0
+    out = capsys.readouterr().out
+    assert "info: [static]" in out and "0 mismatches in moves and nodes" in out
+    assert claims.main(["--results", str(folder / "summary.json")]) == 0  # a file works too
+
+
+def test_make_figures_says_what_to_run_when_results_are_missing(tmp_path, capsys):
+    with pytest.raises(SystemExit) as exc:
+        figures.main(["--out-dir", str(tmp_path)])
+    assert exc.value.code == 2
+    assert "run scripts/run_benchmarks.py first" in capsys.readouterr().err
+
+
 def test_benchmark_is_reproducible(tmp_path):
     """T8 in small: same seeds -> identical moves, nodes and paths (timings may differ)."""
     args = ["--repeats", "2", "--sizes", "10", "20", "--seeds", "3",
@@ -114,8 +173,8 @@ def test_benchmark_is_reproducible(tmp_path):
     for i in range(2):
         out = tmp_path / str(i)
         assert bench.main([*args, "--out-dir", str(out)]) == 0
-        data = json.loads((out / "summary.json").read_text())
-        sweep = (out / "random_mazes.csv").read_text()
+        data = json.loads((out / "results" / "summary.json").read_text())
+        sweep = (out / "results" / "random_mazes.csv").read_text()
         static = [{k: r[k] for k in keep if k in r} for r in data["static_maze"]]
         runs.append((static, sweep, data["backend_moves"]))
     assert runs[0] == runs[1]
@@ -126,7 +185,7 @@ def test_benchmark_records_backends_it_cannot_run(tmp_path, monkeypatch):
     out = tmp_path / "r"
     assert bench.main(["--repeats", "1", "--sizes", "10", "--seeds", "1", "--backends", "mpi",
                        "--backend-mazes", "static", "--out-dir", str(out)]) == 0  # fmt: skip
-    data = json.loads((out / "summary.json").read_text())
+    data = json.loads((out / "results" / "summary.json").read_text())
     assert data["backends_not_run"][0]["reason"] == "mpiexec not found on PATH"
 
 

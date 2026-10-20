@@ -28,14 +28,15 @@ LOCAL = {
     "--json out/astar_random50.json": ["out/astar_random50.json"],
     "python -m maze_runner.backends.multiproc --maze static": [],
     "python scripts/run_benchmarks.py": [
-        "results/static_maze.csv", "results/random_mazes.csv", "results/random_summary.csv",
-        "results/astar_vs_bfs.csv", "results/backends.csv", "results/backend_moves.csv",
-        "results/summary.json",
+        "out/results/static_maze.csv", "out/results/random_mazes.csv",
+        "out/results/random_summary.csv", "out/results/astar_vs_bfs.csv",
+        "out/results/backends.csv", "out/results/backend_moves.csv", "out/results/summary.json",
     ],
     "python scripts/make_figures.py": [
-        "figures/static_moves.png", "figures/nodes_vs_size.png", "figures/backends.png",
+        "out/figures/static_moves.png", "out/figures/nodes_vs_size.png",
+        "out/figures/backends.png",
     ],
-    "python scripts/make_gif.py": ["figures/astar_static.gif"],
+    "python scripts/make_gif.py": ["out/figures/astar_static.gif"],
 }  # fmt: skip
 MPI = {
     "mpiexec -n 4 python -m maze_runner.backends.mpi_run --maze static --out out/mpi_static.json": [
@@ -107,6 +108,7 @@ def test_local_command(repo_copy, cmd):
     assert proc.returncode == 0, proc.stderr[-3000:]
     for name in LOCAL[cmd]:
         assert (repo_copy / name).stat().st_size > 0, name
+    assert not (repo_copy / "results").exists() and not (repo_copy / "figures").exists()
 
 
 @pytest.mark.mpi
