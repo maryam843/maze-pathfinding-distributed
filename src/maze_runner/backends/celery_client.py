@@ -55,7 +55,7 @@ def count_workers(timeout: float = 2.0) -> dict:
     """
     try:
         replies = app.control.ping(timeout=timeout)
-        stats = app.control.inspect(timeout=timeout).stats() or {} if replies else {}
+        stats = (app.control.inspect(timeout=timeout).stats() or {}) if replies else {}
     except Exception as exc:  # kombu raises several connection error types
         raise NoWorkerError(f"Cannot reach the broker ({exc}).\n{START_WORKER_HINT}") from exc
     if not replies:

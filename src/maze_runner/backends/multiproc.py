@@ -1,8 +1,8 @@
 """Run the strategies in parallel with a multiprocessing pool (one strategy per process).
 
-Spawn-safe: the worker function is a top-level function, the job is a small picklable
-dataclass, and nothing runs at import time. So it works with "spawn" (the only start method
-on Windows) as well as "forkserver" (used by default on Linux/macOS) and "fork".
+Spawn-safe: the worker function is a top-level function, each job is a small picklable
+(problem, strategy) tuple, and nothing runs at import time. So it works with "spawn" (the only
+start method on Windows) as well as "forkserver" (used by default on Linux/macOS) and "fork".
 Set MAZE_MP_START_METHOD=spawn to force spawn anywhere.
 """
 

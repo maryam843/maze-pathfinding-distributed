@@ -180,7 +180,7 @@ def show_pygame(problem: MazeProblem, path: Sequence[Cell], seconds: float = 3.0
     try:
         screen = pygame.display.set_mode(img.size)
         pygame.display.set_caption(f"{problem.name}: {len(path) - 1} moves")
-        surface = pygame.image.fromstring(img.tobytes(), img.size, "RGB")
+        surface = pygame.image.frombytes(img.tobytes(), img.size, "RGB")
         screen.blit(surface, (0, 0))
         pygame.display.flip()
         pygame.time.wait(int(seconds * 1000))

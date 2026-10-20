@@ -41,6 +41,7 @@ from maze_runner.strategies import STRATEGY_NAMES, load_problem
 
 ROOT = Path(__file__).resolve().parents[1]
 BACKENDS = ("sequential", "multiprocessing", "mpi", "celery")
+MPI_TIMEOUT_S = 300  # one mpiexec run takes under a second here; a hang must not block forever
 
 
 def parse_maze(spec: str):
@@ -67,7 +68,15 @@ def run_mpi_once(np_: int, maze_args: list[str]) -> dict:
     with tempfile.TemporaryDirectory() as tmp:
         out = Path(tmp) / "mpi.json"
         t0 = time.perf_counter()
-        proc = subprocess.run(mpi_command(np_, maze_args, out), capture_output=True, text=True)
+        try:
+            proc = subprocess.run(
+                mpi_command(np_, maze_args, out),
+                capture_output=True,
+                text=True,
+                timeout=MPI_TIMEOUT_S,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise RuntimeError(f"mpiexec did not finish within {MPI_TIMEOUT_S} s") from exc
         total = time.perf_counter() - t0
         if proc.returncode != 0:
             raise RuntimeError(f"mpiexec failed ({proc.returncode}): {proc.stderr[-2000:]}")
