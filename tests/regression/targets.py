@@ -69,6 +69,9 @@ class NewTarget:
         return len((workdir / "results" / "static_maze.csv").read_text().strip().splitlines()) - 1
 
     def moves_for_identical_celery_tasks(self, n: int) -> list[int]:
+        """Design check: the task receives the maze in its payload, so identical tasks solve the
+        same maze by construction. The real test is the legacy target, whose task built its own
+        random maze on every call."""
         from maze_runner.backends.celery_tasks import solve_task
         from maze_runner.strategies import load_problem
 

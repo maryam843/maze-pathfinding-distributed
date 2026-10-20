@@ -42,8 +42,10 @@ def test_static_maze_ignores_width_and_height():
 
 
 def test_explorer_static_maze_1279_moves_and_no_backtracks():
-    t, moves = Explorer(create_maze(0, 0, "static")).solve()
+    explorer = Explorer(create_maze(0, 0, "static"))
+    t, moves = explorer.solve()
     assert len(moves) == 1279 and t >= 0
+    assert explorer.backtrack_count == 0
 
 
 def test_backtracking_never_triggers(monkeypatch):

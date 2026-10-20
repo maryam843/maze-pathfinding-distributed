@@ -141,10 +141,9 @@ def test_validate_path_rejects_bad_paths():
         "wall": [(0, 1), (0, 0), (1, 1), (2, 1)],
         "jump": [(0, 1), (2, 1)],
     }
-    for name, path in bad.items():
+    for path in bad.values():
         with pytest.raises(InvalidPathError):
             validate_path(CORRIDOR, path)
-        assert name
 
 
 def test_problem_validation():
