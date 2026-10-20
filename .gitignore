@@ -17,6 +17,8 @@ htmlcov/
 venv/
 env/
 .env
+.env.*
+!.env.example
 
 # Data, model files and scratch output (committed results live directly in results/)
 data/
@@ -27,6 +29,14 @@ results/*.tmp
 
 # Notebooks
 .ipynb_checkpoints/
+
+# Logs, editor and OS files
+*.log
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
 
 # Command-line output folder used in the README
 out/
