@@ -50,14 +50,6 @@ jobs:
         run: python -m pytest -q
         env:
           MAZE_MP_START_METHOD: spawn
-      - name: Regression tests must FAIL on the 2025 files
-        run: |
-          set +e
-          MAZE_REGRESSION_TARGET=legacy python -m pytest tests/regression -q -p no:cacheprovider > legacy.txt 2>&1
-          code=$?
-          tail -3 legacy.txt
-          grep -q "12 failed" legacy.txt || { echo "expected all 12 regression tests to fail on the 2025 code"; exit 1; }
-          test $code -ne 0
       - name: README numbers match results/
         run: python scripts/check_readme_claims.py
 

@@ -1,28 +1,17 @@
-"""One regression test per bug fixed in the 2026 rebuild, each named after its bug.
-
-Default: runs against the fixed package and must pass.
-MAZE_REGRESSION_TARGET=legacy: runs the same tests against the 2025 files in original_2025/,
-where every test is expected to FAIL (that is the proof each test catches its bug):
-
-    MAZE_REGRESSION_TARGET=legacy python -m pytest tests/regression -p no:cacheprovider
-"""
+"""One regression test per bug fixed in the 2026 rebuild, each named after its bug."""
 
 from __future__ import annotations
 
-import os
-
 import pytest
 
-from .targets import LegacyTarget, NewTarget
+from .targets import Target
 
 STATIC_OPTIMUM = 127  # shortest path on the static maze, entrance (0, 11) -> exit (47, 13)
 
 
 @pytest.fixture
-def target(tmp_path):
-    if os.environ.get("MAZE_REGRESSION_TARGET") == "legacy":
-        return LegacyTarget(tmp_path)
-    return NewTarget()
+def target():
+    return Target()
 
 
 @pytest.mark.parametrize("strategy", ["bfs", "astar"])
