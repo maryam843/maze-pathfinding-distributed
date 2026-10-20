@@ -18,7 +18,7 @@ BROKER_URL = os.environ.get("CELERY_BROKER_URL", DEFAULT_BROKER_URL)
 RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", "rpc://")
 
 # A task nobody picked up within this many seconds is dropped by the worker instead of running
-# later for a client that already gave up (2025 bug B49).
+# later for a client that already gave up.
 TASK_EXPIRES_S = int(os.environ.get("MAZE_TASK_EXPIRES_S", "60"))
 
 app = Celery(

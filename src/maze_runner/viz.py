@@ -1,7 +1,7 @@
 """Figures and the path animation, all drawn from data (no screen recordings).
 
 matplotlib runs on the non-interactive Agg backend, and pygame is imported only inside
-show_pygame(), so everything else works on a headless machine or CI runner (2025 bug B53).
+show_pygame(), so everything else works on a headless machine or CI runner.
 """
 
 from __future__ import annotations
@@ -172,7 +172,7 @@ def make_gif(
 
 
 def show_pygame(problem: MazeProblem, path: Sequence[Cell], seconds: float = 3.0) -> None:
-    """Open a window with the maze and the path. Called only after timing has stopped (B45)."""
+    """Open a window with the maze and the path. Called only after timing has stopped."""
     import pygame  # lazy: only needed when a window is asked for
 
     img = maze_image(problem, path, scale=12)

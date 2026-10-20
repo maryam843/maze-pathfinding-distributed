@@ -1,4 +1,4 @@
-"""T5: every command in the README "How to run" section runs and makes the files it promises.
+"""Every command in the README "How to run" section runs and makes the files it promises.
 
 The commands are read from README.md itself. If a command is added or changed there without
 being covered here, test_every_readme_command_is_covered fails. Commands run in a temporary
@@ -49,7 +49,7 @@ CELERY_CLIENT = {
         "out/celery_static.json"
     ],
 }
-# Covered elsewhere: environment setup is the fresh-clone check (T6), the claims check is run
+# Covered elsewhere: environment setup is the first step of every CI job, the claims check is run
 # in CI and in test_scripts.py, pytest would call itself, Docker has its own CI job.
 ELSEWHERE = {
     "python -m venv .venv",

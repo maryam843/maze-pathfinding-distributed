@@ -18,7 +18,7 @@ os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
 
 ROOT = Path(__file__).resolve().parents[1]
 
-# T7: MAZE_MP_START_METHOD=spawn runs the whole suite the way Windows would.
+# MAZE_MP_START_METHOD=spawn runs the whole suite the way Windows would.
 if os.environ.get("MAZE_MP_START_METHOD"):
     mp.set_start_method(os.environ["MAZE_MP_START_METHOD"], force=True)
 

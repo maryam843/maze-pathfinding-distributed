@@ -165,7 +165,7 @@ def test_make_figures_says_what_to_run_when_results_are_missing(tmp_path, capsys
 
 
 def test_benchmark_is_reproducible(tmp_path):
-    """T8 in small: same seeds -> identical moves, nodes and paths (timings may differ)."""
+    """Same seeds -> identical moves, nodes and paths (timings may differ)."""
     args = ["--repeats", "2", "--sizes", "10", "20", "--seeds", "3",
             "--backends", "sequential", "multiprocessing", "--backend-mazes", "static"]  # fmt: skip
     keep = ("strategy", "moves", "nodes_expanded", "path_sha", "size", "seed")

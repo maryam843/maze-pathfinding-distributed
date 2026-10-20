@@ -2,10 +2,8 @@
 
     mpiexec -n 4 python -m maze_runner.backends.mpi_run --maze static --out results/mpi.json
 
-With 4 ranks each rank solves one strategy; with 2 ranks each solves two. In 2025 every rank
-built and solved the same maze with the same explorer (B51), so the ranks had nothing
-different to compare. Broadcasting from rank 0 also guarantees they all see the same maze,
-even for a random one.
+With 4 ranks each rank solves one strategy; with 2 ranks each solves two. Broadcasting from
+rank 0 guarantees every rank sees the same maze, even for a random one.
 """
 
 from __future__ import annotations

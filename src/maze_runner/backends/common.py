@@ -1,9 +1,8 @@
 """What every backend does per worker, and the checks that make the comparison fair.
 
-2025 bugs B48/B51: every worker solved the same maze with the same explorer (MPI,
-multiprocessing) or a different random maze with the same explorer (Celery), so "best
-explorer" was only timing noise. Now every job is the SAME maze with a DIFFERENT strategy,
-and each worker reports the maze fingerprint it actually solved so this can be checked.
+Every job is the SAME maze with a DIFFERENT strategy, and each worker reports the fingerprint
+of the maze it actually solved, so check_results() can prove that all workers solved one maze.
+Without this, "best explorer" would only be timing noise.
 """
 
 from __future__ import annotations

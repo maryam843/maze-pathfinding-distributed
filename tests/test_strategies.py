@@ -116,7 +116,7 @@ def test_start_equals_goal():
 
 
 def test_static_maze_known_values():
-    """Values measured in Phase 0 and by the 2026 audit run-check."""
+    """Known values on the static maze: right-hand 1279 moves, BFS and A* 127."""
     p = load_problem("static")
     moves = {s: solve(p, s).moves for s in STRATEGY_NAMES}
     assert moves["right_hand"] == 1279

@@ -1,8 +1,8 @@
 """Timing and result-writing helpers used by scripts/run_benchmarks.py.
 
-Rules from the 2025 bugs: the timer covers the search only, never a display (B45); every run
-writes fresh files instead of appending (B46); timings come from non-visual runs and are
-repeated so a mean and standard deviation can be reported (B47).
+Rules: the timer covers the search only, never a display; every run writes fresh files
+instead of appending; timings come from non-visual runs and are repeated so a mean and
+standard deviation can be reported.
 """
 
 from __future__ import annotations
