@@ -1,5 +1,6 @@
-# Image for the Celery worker and client. MPI is not used inside containers, so mpi4py (which
-# compiles against a system MPI on Linux) is left out to keep the image small.
+# Image for the Celery worker and client. mpi4py has Linux wheels since 4.1.0, but using it
+# would also need an MPI library and mpiexec in the image, and the Celery demo does not use MPI,
+# so mpi4py is left out to keep the image small.
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
