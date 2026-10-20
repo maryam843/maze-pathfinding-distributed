@@ -189,6 +189,16 @@ def test_benchmark_records_backends_it_cannot_run(tmp_path, monkeypatch):
     assert data["backends_not_run"][0]["reason"] == "mpiexec not found on PATH"
 
 
+def test_benchmark_stops_a_hung_mpiexec(monkeypatch):
+    def hang(cmd, **kwargs):
+        assert kwargs["timeout"] == bench.MPI_TIMEOUT_S
+        raise subprocess.TimeoutExpired(cmd, kwargs["timeout"])
+
+    monkeypatch.setattr(bench.subprocess, "run", hang)
+    with pytest.raises(RuntimeError, match="did not finish"):
+        bench.run_mpi_once(4, ["--maze", "static"])
+
+
 def _git(repo, *args):
     ident = ["-c", "user.name=Maryam Mahaboob",
              "-c", "user.email=185722545+maryam843@users.noreply.github.com"]  # fmt: skip
