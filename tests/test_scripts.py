@@ -38,7 +38,7 @@ figures = load_script("make_figures")
         ("student 60" + "1234567", "id-like-number"),
         ("id_60" + "1234567 here", "id-like-number"),
         ("other hash aaaaaaaa1234" + "5678", "id-like-number"),
-        ("password = '" + "hunter22'", "password-assignment"),
+        ("password = '" + "hunter22'", "password-literal"),
         ("amqp://user:pw" + "@" + "rabbit.example/", "url-credentials"),
     ],
 )

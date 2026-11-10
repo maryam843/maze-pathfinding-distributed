@@ -1,7 +1,7 @@
 """Four ways to get through a maze: two wall followers and two shortest-path searches.
 
 Coordinate convention: every grid here is indexed grid[row][col], 0 = open, 1 = wall.
-The provided Maze class stores positions as (x, y) = (col, row). All code in this module
+The supplied Maze class stores positions as (x, y) = (col, row). All code in this module
 works in (row, col), and the conversion happens in exactly one place: to_row_col(), used by
 MazeProblem.from_maze(), so every strategy solves the game's own maze, entrance and exit.
 """
@@ -22,13 +22,13 @@ Cell = tuple[int, int]  # (row, col)
 
 
 def to_row_col(pos_xy: tuple[int, int]) -> Cell:
-    """Convert the provided Maze's (x, y) position into (row, col)."""
+    """Convert the supplied Maze's (x, y) position into (row, col)."""
     x, y = pos_xy
     return (y, x)
 
 
 def to_x_y(cell: Cell) -> tuple[int, int]:
-    """Inverse of to_row_col, used only to hand positions back to the provided Explorer."""
+    """Inverse of to_row_col, used only to hand positions back to the supplied Explorer."""
     row, col = cell
     return (col, row)
 
@@ -52,7 +52,7 @@ class MazeProblem:
 
     @classmethod
     def from_maze(cls, maze, name: str = "maze") -> MazeProblem:
-        """Build a problem from the provided Maze/StaticMaze object (the only (x, y) boundary)."""
+        """Build a problem from the supplied Maze/StaticMaze object (the only (x, y) boundary)."""
         grid = tuple(tuple(int(v) for v in row) for row in maze.grid)
         return cls(grid, to_row_col(maze.start_pos), to_row_col(maze.end_pos), name)
 
@@ -99,7 +99,7 @@ class MazeProblem:
 
 
 def load_problem(kind: str = "static", size: int = 30, seed: int | None = 0) -> MazeProblem:
-    """The static maze from the assignment, or a seeded random maze of size x size."""
+    """The static maze, or a seeded random maze of size x size."""
     if kind == "static":
         return MazeProblem.from_maze(create_maze(0, 0, "static"), name="static")
     if kind == "random":
@@ -115,8 +115,8 @@ class SearchResult:
     path: cells from start to goal inclusive, or None if the goal was not reached.
     nodes_expanded: BFS/A*: cells taken off the queue/heap and expanded.
         Wall followers: distinct cells they stood on (they have no queue).
-    backtracks: the provided explorer's backtrack counter. None for BFS/A*, which never
-        backtrack (in 2025 BFS printed moves - 1 here, which was not a real count).
+    backtracks: the supplied explorer's backtrack counter. None for BFS/A*, which never
+        backtrack (the earlier version of BFS printed moves - 1 here, which was not a real count).
     """
 
     strategy: str
@@ -164,7 +164,7 @@ def validate_path(problem: MazeProblem, path: list[Cell]) -> None:
 
 
 def neighbours(problem: MazeProblem, cell: Cell) -> Iterator[Cell]:
-    """Open 4-neighbours, in the same order my 2025 BFS/A* used: down, up, right, left."""
+    """Open 4-neighbours, in the same order the original BFS/A* used: down, up, right, left."""
     row, col = cell
     for nxt in ((row + 1, col), (row - 1, col), (row, col + 1), (row, col - 1)):
         if problem.is_open(nxt):
@@ -181,7 +181,7 @@ def _rebuild(came_from: dict[Cell, Cell | None], goal: Cell) -> list[Cell]:
 
 
 def bfs(problem: MazeProblem) -> SearchResult:
-    """Breadth-first search (from my 2025 bfs.py). Shortest path on an unweighted grid."""
+    """Breadth-first search (from the original bfs.py). Shortest path on an unweighted grid."""
     queue: deque[Cell] = deque([problem.start])
     came_from: dict[Cell, Cell | None] = {problem.start: None}
     expanded = 0
@@ -203,11 +203,11 @@ def manhattan(a: Cell, b: Cell) -> int:
 
 
 def astar(problem: MazeProblem) -> SearchResult:
-    """A* with the Manhattan heuristic (from my 2025 astar.py).
+    """A* with the Manhattan heuristic (from the original astar.py).
 
-    Heap entries are (f, g, cell) as in 2025, so ties on f go to the smaller g.
-    2026 change: a cell already expanded is skipped when an older heap entry for it is popped,
-    so each cell is expanded at most once and nodes_expanded counts real work.
+    Heap entries are (f, g, cell) as in the earlier version, so ties on f go to the smaller g.
+    Change from the earlier version: a cell already expanded is skipped when an older heap entry
+    for it is popped, so each cell is expanded at most once and nodes_expanded counts real work.
     """
     start, goal = problem.start, problem.goal
     heap: list[tuple[int, int, Cell]] = [(manhattan(start, goal), 0, start)]
@@ -233,7 +233,7 @@ def astar(problem: MazeProblem) -> SearchResult:
 
 
 class LeftHandExplorer(Explorer):
-    """The provided right-hand explorer with its two turns swapped.
+    """The supplied right-hand explorer with its two turns swapped.
 
     Its loop is "turn right, else forward, else left, else back". Swapping turn_right and
     turn_left gives "turn left, else forward, else right, else back", which is the left-hand
@@ -263,12 +263,12 @@ def _wall_follower(problem: MazeProblem, explorer_cls: type[Explorer], name: str
 
 
 def right_hand(problem: MazeProblem) -> SearchResult:
-    """The course's explorer, unchanged in behaviour (right-hand wall follower)."""
+    """The supplied explorer, unchanged in behaviour (right-hand wall follower)."""
     return _wall_follower(problem, Explorer, "right_hand")
 
 
 def left_hand(problem: MazeProblem) -> SearchResult:
-    """Mirror image of the course's explorer (left-hand wall follower)."""
+    """Mirror image of the supplied explorer (left-hand wall follower)."""
     return _wall_follower(problem, LeftHandExplorer, "left_hand")
 
 

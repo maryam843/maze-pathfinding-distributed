@@ -1,6 +1,4 @@
-# Provided by DSAI3202 course staff (UDST, Spring 2025).
-# Modified by me: yes (2025: FPS 60 -> 30)
-# Modified in 2026: whitespace only, reformatted with ruff.
+# Supplied with the original exercise. Changed here: FPS 60 -> 30, reformatted with ruff.
 """
 Constants module containing all game-related constants.
 """

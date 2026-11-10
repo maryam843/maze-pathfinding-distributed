@@ -1,4 +1,4 @@
-"""Tests for the provided maze and explorer modules and my 2026 changes to them."""
+"""Tests for the supplied maze and explorer modules and the changes made to them here."""
 
 from __future__ import annotations
 

@@ -17,7 +17,7 @@ from .strategies import STRATEGY_NAMES, load_problem
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m maze_runner",
-        description="Solve the course's static maze or a seeded random maze.",
+        description="Solve the static maze or a seeded random maze.",
     )
     parser.add_argument("--maze", choices=["static", "random"], default="static")
     parser.add_argument("--size", type=int, default=30, help="random maze width and height")

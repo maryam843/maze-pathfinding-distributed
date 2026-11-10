@@ -37,7 +37,7 @@ PATTERNS = {
     "slack-token": re.compile(r"\bxox[abprs]-[A-Za-z0-9-]{10,}\b"),
     "google-api-key": re.compile(r"\bAIza[0-9A-Za-z_-]{35}\b"),
     "private-key": re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
-    "password-assignment": re.compile(
+    "password-literal": re.compile(
         r"(?i)\b(password|passwd|secret|api_key|token)\s*[:=]\s*['\"][^'\"\s]{6,}['\"]"
     ),
     # RabbitMQ's documented default guest:guest login is allowed; anything else is flagged.
