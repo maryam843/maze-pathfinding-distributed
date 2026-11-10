@@ -4,7 +4,7 @@
 celery==5.6.3
 matplotlib==3.11.2
 mpi4py==4.1.2
-pillow==12.3.0
+pillow==13.0.0
 pygame==2.6.1
 # This package itself (src/maze_runner), installed in editable mode.
 -e .
